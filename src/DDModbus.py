@@ -103,7 +103,7 @@ class DDModbus:
     port = None
     CLEANING_TIMEOUT = 0.1
     SLAVE_RX_TIMEOUT = 0.5
-    MASTER_RX_TIMEOUT = 2.5
+    MASTER_RX_TIMEOUT = 0.5
     READ_ANALOG_HOLDING_REGISTERS = 0x03
     WRITE_MULTIPLE_REGISTERS = 0x10
 
@@ -259,7 +259,6 @@ class DDModbus:
 
         #send it
         self.logger.info('Send write request: '+request.hex())
-        print('Send write request: ',request)
         self.socket.write(request)
 
         #wait for ack
@@ -267,7 +266,6 @@ class DDModbus:
             self.socket.timeout = DDModbus.MASTER_RX_TIMEOUT
             answer = self.socket.read(1024)
             self.logger.debug('Ack received: '+answer.hex())
-            print('Ack received: ' + answer.hex())
             #check ack
             waited_ack=request[0:6]
             crc=calc_crc(waited_ack)
@@ -277,11 +275,9 @@ class DDModbus:
                 self.logger.info('Ack OK')
                 return True
             else:
-                print('Ack KO. Waited Ack was : '+waited_ack.hex())
                 self.logger.warning('Ack KO. Waited Ack was : '+waited_ack.hex())
                 return False
 
         except socket.error as exc:
-            print('No ack  to master write request', exc)
             self.logger.warning('No ack  to master write request')
             return False

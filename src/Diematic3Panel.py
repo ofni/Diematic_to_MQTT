@@ -33,18 +33,21 @@ class DDREGISTER(IntEnum):
     JOUR_SEMAINE = 6
     TEMP_EXT = 7
     NB_JOUR_ANTIGEL = 13
+
     CONS_JOUR_B = 23
     CONS_NUIT_B = 24
     CONS_ANTIGEL_B = 25
     MODE_B = 26
     TEMP_AMB_B = 27
     TCALC_B = 32
-    CONS_JOUR_A = 35#14
-    CONS_NUIT_A = 36#15
-    CONS_ANTIGEL_A = 37#16
-    MODE_A = 38#17
-    TEMP_AMB_A = 39#18
-    TCALC_A = 44#21
+
+    CONS_JOUR_C = 35
+    CONS_NUIT_C = 36
+    CONS_ANTIGEL_C = 37
+    MODE_C = 38
+    TEMP_AMB_C = 39
+    TCALC_C = 44
+
     CONS_ECS = 59
     TEMP_ECS = 62
     TEMP_CHAUD = 75
@@ -62,74 +65,6 @@ class DDREGISTER(IntEnum):
     PRESSION_EAU = 456
     PUMP_POWER = 463
     ALARME = 465
-
-
-class DinematicRegisters:
-
-    # ModBus Register Types
-    REAL10 = 0
-    BIT = 1
-    INTEGER = 2
-
-    registers = {
-        "CTRL"              : {"reg": 3, "value": None, type: ""},
-        "HEURE"             : {"reg": 4, "value": None, type: ""},
-        "MINUTE"            : {"reg": 5, "value": None, type: ""},
-        "JOUR_SEMAINE"      : {"reg": 6, "value": None, type: ""},
-        "TEMP_EXT"          : {"reg": 7, "value": None, type: ""},
-        "NB_JOUR_ANTIGEL"   : {"reg": 13, "value": None, type: ""},
-        "CONS_JOUR_B"       : {"reg": 23, "value": None, type: ""},
-        "CONS_NUIT_B"       : {"reg": 24, "value": None, type: ""},
-        "CONS_ANTIGEL_B"    : {"reg": 25, "value": None, type: ""},
-        "MODE_B"            : {"reg": 26, "value": None, type: ""},
-        "TEMP_AMB_B"        : {"reg": 27, "value": None, type: ""},
-        "TCALC_B"           : {"reg": 32, "value": None, type: ""},
-        "CONS_JOUR_A"       : {"reg": 35, "value": None, type: ""},
-        "CONS_NUIT_A"       : {"reg": 36, "value": None, type: ""},
-        "CONS_ANTIGEL_A"    : {"reg": 37, "value": None, type: ""},
-        "MODE_A"            : {"reg": 38, "value": None, type: ""},
-        "TEMP_AMB_A"        : {"reg": 39, "value": None, type: ""},
-        "TCALC_A"           : {"reg": 44, "value": None, type: ""},
-        "CONS_ECS"          : {"reg": 59, "value": None, type: ""},
-        "TEMP_ECS"          : {"reg": 62, "value": None, type: ""},
-        "TEMP_CHAUD"        : {"reg": 75, "value": None, type: ""},
-        "BASE_ECS"          : {"reg": 89, "value": None, type: ""},
-        "OPTIONS_B_C"       : {"reg": 90, "value": None, type: ""},
-        "CONS_ECS_NUIT"     : {"reg": 96, "value": None, type: ""},
-        "JOUR"              : {"reg": 108, "value": None, type: ""},
-        "MOIS"              : {"reg": 109, "value": None, type: ""},
-        "ANNEE"             : {"reg": 110, "value": None, type: ""},
-        "FAN_SPEED"         : {"reg": 307, "value": None, type: ""},
-        "BOILER_TYPE"       : {"reg": 308, "value": None, type: ""},
-        "IONIZATION_CURRENT": {"reg": 451, "value": None, type: ""},
-        "RETURN_TEMP"       : {"reg": 453, "value": None, type: ""},
-        "SMOKE_TEMP"        : {"reg": 454, "value": None, type: ""},
-        "PRESSION_EAU"      : {"reg": 456, "value": None, type: ""},
-        "PUMP_POWER"        : {"reg": 463, "value": None, type: ""},
-        "ALARME"            : {"reg": 465, "value": None, type: ""},
-    }
-
-    registers_inverted = None
-    ranges = []
-
-    def __init__(self):
-        self.sort_registers()
-        self.invert_registers()
-        self.find_range()
-
-    def find_range(self):
-        data = [x for x in self.registers_inverted.keys()]
-        for k, g in groupby(enumerate(data), lambda ix : ix[0] - ix[1]):
-            self.ranges.append(list(map(itemgetter(1), g)))
-
-    def invert_registers(self):
-        self.registers_inverted =  {value["reg"]: key for key, value in self.registers.items() }
-        return self.registers_inverted
-
-    def sort_registers(self):
-        self.registers = { x[0]:x[1] for x in sorted(self.registers.items(), key=lambda x: x[1]['reg'])}
-
-
 
 
 #This class allow to read/write parameters to Diematic regulator with the helo of a RS485/TCP IP converter
@@ -159,12 +94,12 @@ class Diematic3Panel:
     _hotWaterMode = None
     _hotWaterDayTargetTemp = None
     _hotWaterNightTargetTemp = None
-    zoneATemp = None
-    _zoneAMode = None
-    zoneAPump = None
-    _zoneADayTargetTemp = None
-    _zoneANightTargetTemp = None
-    _zoneAAntiiceTargetTemp = None
+    zoneCTemp = None
+    _zoneCMode = None
+    zoneCPump = None
+    _zoneCDayTargetTemp = None
+    _zoneCNightTargetTemp = None
+    _zoneCAntiiceTargetTemp = None
     zoneBTemp = None
     _zoneBMode = None
     zoneBPump = None
@@ -174,8 +109,8 @@ class Diematic3Panel:
     run = None
     slaveTime = None
     loopThread = None
-    _zoneBNightTempTarget = None
-    _zoneBAntiiceTempTarget = None
+    _zoneBNightTargetTemp = None
+    _zoneBAntiiceTargetTemp = None
     masterTime = None
     masterSlaveSynchro = None
     lastSynchroTimestamp = None
@@ -207,7 +142,7 @@ class Diematic3Panel:
         self.regUpdateRequest = queue.Queue()
 
         #queues for specific Mode register request
-        self.zoneAModeUpdateRequest = queue.Queue()
+        self.zoneCModeUpdateRequest = queue.Queue()
         self.zoneBModeUpdateRequest = queue.Queue()
         self.hotWaterModeUpdateRequest = queue.Queue()
 
@@ -253,12 +188,12 @@ class Diematic3Panel:
         self._hotWaterMode = None
         self._hotWaterDayTargetTemp = None
         self._hotWaterNightTargetTemp = None
-        self.zoneATemp = None
-        self._zoneAMode = None
-        self.zoneAPump = None
-        self._zoneADayTargetTemp = None
-        self._zoneANightTargetTemp = None
-        self._zoneAAntiiceTargetTemp = None
+        self.zoneCTemp = None
+        self._zoneCMode = None
+        self.zoneCPump = None
+        self._zoneCDayTargetTemp = None
+        self._zoneCNightTargetTemp = None
+        self._zoneCAntiiceTargetTemp = None
         self.zoneBTemp = None
         self._zoneBMode = None
         self.zoneBPump = None
@@ -298,33 +233,33 @@ class Diematic3Panel:
             self.regUpdateRequest.put(reg)
 
     @property
-    def zone_a_antiice_target_temp(self):
-            return self._zoneAAntiiceTargetTemp
+    def zone_c_antiice_target_temp(self):
+            return self._zoneCAntiiceTargetTemp
 
-    @zone_a_antiice_target_temp.setter
-    def zone_a_antiice_target_temp(self, x):
+    @zone_c_antiice_target_temp.setter
+    def zone_c_antiice_target_temp(self, x):
             #register structure creation, only 0.5 multiple are usable, temp is in tenth of degree
-            reg = DDModbus.RegisterSet(DDREGISTER.CONS_ANTIGEL_A.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
+            reg = DDModbus.RegisterSet(DDREGISTER.CONS_ANTIGEL_C.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
             self.regUpdateRequest.put(reg)
 
     @property
-    def zone_a_night_target_temp(self):
-            return self._zoneANightTargetTemp
+    def zone_c_night_target_temp(self):
+            return self._zoneCNightTargetTemp
 
-    @zone_a_night_target_temp.setter
-    def zone_a_night_target_temp(self, x):
+    @zone_c_night_target_temp.setter
+    def zone_c_night_target_temp(self, x):
             #register structure creation, only 0.5 multiple are usable, temp is in tenth of degree
-            reg = DDModbus.RegisterSet(DDREGISTER.CONS_NUIT_A.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
+            reg = DDModbus.RegisterSet(DDREGISTER.CONS_NUIT_C.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
             self.regUpdateRequest.put(reg)
 
     @property
-    def zone_a_day_target_temp(self):
-            return self._zoneADayTargetTemp
+    def zone_c_day_target_temp(self):
+            return self._zoneCDayTargetTemp
 
-    @zone_a_day_target_temp.setter
-    def zone_a_day_target_temp(self, x):
+    @zone_c_day_target_temp.setter
+    def zone_c_day_target_temp(self, x):
             #register structure creation, only 0.5 multiple are usable, temp is in tenth of degree
-            reg = DDModbus.RegisterSet(DDREGISTER.CONS_JOUR_A.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
+            reg = DDModbus.RegisterSet(DDREGISTER.CONS_JOUR_C.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
             self.regUpdateRequest.put(reg)
 
     @property
@@ -353,32 +288,32 @@ class Diematic3Panel:
 
     @zone_b_day_target_temp.setter
     def zone_b_day_target_temp(self, x):
-            print('in setter')
             #register structure creation, only 0.5 multiple are usable, temp is in tenth of degree
             reg = DDModbus.RegisterSet(DDREGISTER.CONS_JOUR_B.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
             self.regUpdateRequest.put(reg)
 
     @property
-    def zone_a_mode(self):
-            return self._zoneAMode
+    def zone_c_mode(self):
+            return self._zoneCMode
 
-    @zone_a_mode.setter
-    def zone_a_mode(self, x):
+    @zone_c_mode.setter
+    def zone_c_mode(self, x):
 
         #request mode A register change depending mode requested
-        self.logger.debug('zone A mode requested:'+str(x))
+        self.logger.debug('zone C mode requested:'+str(x))
+        #print('zone C mode requested:' + str(x))
         if x =='AUTO':
-            self.zoneAModeUpdateRequest.put(8)
+            self.zoneCModeUpdateRequest.put(8)
         elif x =='TEMP JOUR':
-            self.zoneAModeUpdateRequest.put(36)
+            self.zoneCModeUpdateRequest.put(36)
         elif x =='TEMP NUIT':
-            self.zoneAModeUpdateRequest.put(34)
+            self.zoneCModeUpdateRequest.put(34)
         elif x =='PERM JOUR':
-            self.zoneAModeUpdateRequest.put(4)
+            self.zoneCModeUpdateRequest.put(4)
         elif x =='PERM NUIT':
-            self.zoneAModeUpdateRequest.put(2)
+            self.zoneCModeUpdateRequest.put(2)
         elif x =='ANTIGEL':
-            self.zoneAModeUpdateRequest.put(1)
+            self.zoneCModeUpdateRequest.put(1)
     @property
     def zone_b_mode(self):
             return self._zoneBMode
@@ -422,7 +357,7 @@ class Diematic3Panel:
             return self._datetime
 
     @datetime.setter
-    def datetime(self,x):
+    def datetime(self, x):
         #switch time to boiler timezone
         x = x.astimezone(pytz.timezone(self.boilerTimezone))
 
@@ -439,7 +374,7 @@ class Diematic3Panel:
     def refresh_registers_old(self):
 
         #update registers 1->63
-        print('update registers 1->63')
+        #print('update registers 1->63')
         for reg in range(1, 63):
             if not self.registers.get(reg):
                 reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
@@ -447,7 +382,7 @@ class Diematic3Panel:
                     self.registers.update(reg)
 
         # update registers 64->127
-        print('update registers 64->127')
+        #print('update registers 64->127')
         for reg in range(64, 127):
             if not self.registers.get(reg):
                 reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
@@ -455,7 +390,7 @@ class Diematic3Panel:
                     self.registers.update(reg)
 
         # update registers 384->447
-        print('update registers 384->447')
+        #print('update registers 384->447')
         for reg in range(384, 447):
             if not self.registers.get(reg):
                 reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
@@ -463,7 +398,7 @@ class Diematic3Panel:
                     self.registers.update(reg)
 
         # update registers 448->470
-        print('update registers 448->470')
+        #print('update registers 448->470')
         for reg in range(448, 470):
             if not self.registers.get(reg):
                 reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
@@ -583,7 +518,7 @@ class Diematic3Panel:
         self.release = self.registers[DDREGISTER.CTRL]
         self.extTemp = self.float10(self.registers[DDREGISTER.TEMP_EXT])
         self.temp = self.float10(self.registers[DDREGISTER.TEMP_CHAUD])
-        self.targetTemp = self.float10(self.registers[DDREGISTER.TCALC_A])
+        self.targetTemp = self.float10(self.registers[DDREGISTER.TCALC_C])
         self.returnTemp = self.float10(self.registers[DDREGISTER.RETURN_TEMP])
         self.waterPressure = self.float10(self.registers[DDREGISTER.PRESSION_EAU])
         self.smokeTemp = self.float10(self.registers[DDREGISTER.SMOKE_TEMP])
@@ -615,46 +550,46 @@ class Diematic3Panel:
         #hotwater
         self.hotWaterPump = (self.registers[DDREGISTER.BASE_ECS] & 0x20) >>5
         self.hotWaterTemp = self.float10(self.registers[DDREGISTER.TEMP_ECS])
-        if (self.registers[DDREGISTER.MODE_A] & 0x50) == 0:
+        if (self.registers[DDREGISTER.MODE_C] & 0x50) == 0:
             self._hotWaterMode = 'AUTO'
-        elif (self.registers[DDREGISTER.MODE_A] & 0x50) == 0x50:
+        elif (self.registers[DDREGISTER.MODE_C] & 0x50) == 0x50:
             self._hotWaterMode = 'TEMP'
-        elif (self.registers[DDREGISTER.MODE_A] & 0x50) == 0x10:
+        elif (self.registers[DDREGISTER.MODE_C] & 0x50) == 0x10:
             self._hotWaterMode = 'PERM'
         else:
             self._hotWaterMode = None
         self._hotWaterDayTargetTemp = self.float10(self.registers[DDREGISTER.CONS_ECS])
         self._hotWaterNightTargetTemp = self.float10(self.registers[DDREGISTER.CONS_ECS_NUIT])
 
-        #Area A
-        self.zoneATemp = self.float10(self.registers[DDREGISTER.TEMP_AMB_A])
-        if self.zoneATemp is not None:
-            mode_a = self.registers[DDREGISTER.MODE_A] & 0x2F
+        #Area C
+        self.zoneCTemp = self.float10(self.registers[DDREGISTER.TEMP_AMB_C])
+        if self.zoneCTemp is not None:
+            mode_c = self.registers[DDREGISTER.MODE_C] & 0x2F
 
-            if mode_a == 8:
-                self._zoneAMode = 'AUTO'
-            elif mode_a == 36:
-                self._zoneAMode = 'TEMP JOUR'
-            elif mode_a == 34:
-                self._zoneAMode = 'TEMP NUIT'
-            elif mode_a == 4:
-                self._zoneAMode = 'PERM JOUR'
-            elif mode_a == 2:
-                self._zoneAMode = 'PERM NUIT'
-            elif mode_a == 1:
-                self._zoneAMode = 'ANTIGEL'
-            self.zoneAPump = (self.registers[DDREGISTER.BASE_ECS] & 0x10) >>4
-            self.pumpPower = self.registers[DDREGISTER.PUMP_POWER] if (self.zoneAPump == 1) else 0
-            self._zoneADayTargetTemp = self.float10(self.registers[DDREGISTER.CONS_JOUR_A])
-            self._zoneANightTargetTemp = self.float10(self.registers[DDREGISTER.CONS_NUIT_A])
-            self._zoneAAntiiceTargetTemp = self.float10(self.registers[DDREGISTER.CONS_ANTIGEL_A])
+            if mode_c == 8:
+                self._zoneCMode = 'AUTO'
+            elif mode_c == 36:
+                self._zoneCMode = 'TEMP JOUR'
+            elif mode_c == 34:
+                self._zoneCMode = 'TEMP NUIT'
+            elif mode_c == 4:
+                self._zoneCMode = 'PERM JOUR'
+            elif mode_c == 2:
+                self._zoneCMode = 'PERM NUIT'
+            elif mode_c == 1:
+                self._zoneCMode = 'ANTIGEL'
+            self.zoneCPump = (self.registers[DDREGISTER.BASE_ECS] & 0x10) >>4
+            self.pumpPower = self.registers[DDREGISTER.PUMP_POWER] if (self.zoneCPump == 1) else 0
+            self._zoneCDayTargetTemp = self.float10(self.registers[DDREGISTER.CONS_JOUR_C])
+            self._zoneCNightTargetTemp = self.float10(self.registers[DDREGISTER.CONS_NUIT_C])
+            self._zoneCAntiiceTargetTemp = self.float10(self.registers[DDREGISTER.CONS_ANTIGEL_C])
 
         else:
-            self._zoneAMode = None
-            self.zoneAPump = None
-            self._zoneADayTargetTemp = None
-            self._zoneANightTargetTemp = None
-            self._zoneAAntiiceTargetTemp = None
+            self._zoneCMode = None
+            self.zoneCPump = None
+            self._zoneCDayTargetTemp = None
+            self._zoneCNightTargetTemp = None
+            self._zoneCAntiiceTargetTemp = None
 
 
         #Area B
@@ -676,62 +611,70 @@ class Diematic3Panel:
 
             self.zoneBPump =(self.registers[DDREGISTER.OPTIONS_B_C] & 0x10) >>4
             self._zoneBDayTargetTemp = self.float10(self.registers[DDREGISTER.CONS_JOUR_B])
-            self._zoneBNightTempTarget = self.float10(self.registers[DDREGISTER.CONS_NUIT_B])
-            self._zoneBAntiiceTempTarget = self.float10(self.registers[DDREGISTER.CONS_ANTIGEL_B])
+            self._zoneBNightTargetTemp = self.float10(self.registers[DDREGISTER.CONS_NUIT_B])
+            self._zoneBAntiiceTargetTemp = self.float10(self.registers[DDREGISTER.CONS_ANTIGEL_B])
 
         else:
             self._zoneBMode = None
             self.zoneBPump = None
             self._zoneBDayTargetTemp = None
-            self._zoneBNightTempTarget = None
-            self._zoneBAntiiceTempTarget  =  None
+            self._zoneBNightTargetTemp = None
+            self._zoneBAntiiceTargetTemp  =  None
 
         self.updateCallback()
 
 
 #this property is used by the Modbus loop to set register dedicated to Mode A and hotwater mode (in case of no usage of B area)		
-    def mode_a_update(self):
+    def mode_c_update(self):
         #if mode A register update request is pending
-        if not(self.zoneAModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and (self.zone_a_mode is None)):
-            print('...........MODE A UPDATE............')
+        if not(self.zoneCModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and (self.zone_c_mode is None)):
+            #print('...........MODE C UPDATE............')
             #get current mode
-            current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, 1)
+            current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, 1)
+
             #in case of success
             if current_mode:
-                mode = current_mode[DDREGISTER.MODE_A]
-                self.logger.info('Mode A current value :'+str(mode))
+                mode = current_mode[DDREGISTER.MODE_C]
+                #print('mode 1 ', mode)
+                self.logger.info('Mode C current value :'+str(mode))
 
                 #update mode with mode requests
-                if not(self.zoneAModeUpdateRequest.empty()):
-                    mode = (mode & 0x50) | self.zoneAModeUpdateRequest.get()
+                if not(self.zoneCModeUpdateRequest.empty()):
+                    mode = (mode & 0x50) | self.zoneCModeUpdateRequest.get()
+                    #print('mode 2 ', mode)
 
                 if not(self.hotWaterModeUpdateRequest.empty()) and (self.zone_b_mode is None):
                     mode = (mode & 0x2F) | self.hotWaterModeUpdateRequest.get()
+                    #print('mode 3 ', mode)
 
-                self.logger.info('Mode A next value :'+str(mode))
+                self.logger.info('Mode C next value :'+str(mode))
+                #print('Mode C next value :' + str(mode))
                 #specific case for antiice request
                 #following write procedure is an empirical solution to have remote control refresh while updating mode
                 if mode == 1:
                     #set antiice day number to 1
+                    #print('write 1')
                     self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.NB_JOUR_ANTIGEL.value, [1])
                     time.sleep(0.5)
                     #set antiice day number to 0
+                    #print('write 2')
                     self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.NB_JOUR_ANTIGEL.value, [0])
-                    #set mode A number to requested value
-                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, [mode])
+                    #set mode C number to requested value
+                    #print('write 3')
+                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, [mode])
 
                 #general case
                 #following write procedure is an empirical solution to have remote control refresh while updating mode
                 else:
-                    #set mode A
-                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, [mode])
+                    #set mode C
+                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, [mode])
                     #set antiice day number to 1
                     self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.NB_JOUR_ANTIGEL.value, [1])
-                    #set mode A again
-                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, [mode])
+                    #set mode C again
+                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, [mode])
                     time.sleep(0.5)
-                    #set mode A again
-                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, [mode])
+                    #set mode C again
+                    self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, [mode])
                     #set antiice day number to 0
                     self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.NB_JOUR_ANTIGEL.value, [0])
 
@@ -742,7 +685,7 @@ class Diematic3Panel:
     def mode_b_update(self):
         #if mode B register update request is pending
         if not(self.zoneBModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and self.zone_b_mode):
-            print('...........MODE B UPDATE............')
+            #print('...........MODE B UPDATE............')
             #get current mode
             current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_B.value, 1)
             #in case of success
@@ -822,18 +765,19 @@ class Diematic3Panel:
                             self.logger.info('ModBus Master Slave Synchro OK')
                             self.masterSlaveSynchro = True
 
-                        #mode A register update if needed
-                        self.mode_a_update()
+                        #mode C register update if needed
+                        self.mode_c_update()
+                        #self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_C.value, [1])
+                        #self.modBusInterface.master_write_analog(self.regulatorAddress, DDREGISTER.MODE_B.value, [1])
 
                         #mode B register update if needed
                         self.mode_b_update()
 
                         #while general register update request are pending and Master mode is started since less than 2s
-                        print('here !', self.regUpdateRequest.empty(), time.time()-self.masterTime )
                         while not(self.regUpdateRequest.empty()) and ((time.time()-self.masterTime) < 2):
                             reg_set = self.regUpdateRequest.get(False)
                             self.logger.debug('Write Request :'+str(reg_set.address)+':'+str(reg_set.data))
-                            print('Write Request :' + str(reg_set.address) + ':' + str(reg_set.data))
+                            #print('Write Request :' + str(reg_set.address) + ':' + str(reg_set.data))
                             #write to Analog registers
                             if not self.modBusInterface.master_write_analog(self.regulatorAddress, reg_set.address, reg_set.data):
                                 #And cancel Master Slave Synchro Flag in case of error
@@ -843,6 +787,7 @@ class Diematic3Panel:
 
 
                         #update registers, todo condition for refresh launch
+                        self.refreshRequest =True
                         if ((time.time()-self.lastSynchroTimestamp) > (self.refreshPeriod-5)) or self.refreshRequest:
                             if self.refresh_registers():
                                 self.lastSynchroTimestamp = time.time()

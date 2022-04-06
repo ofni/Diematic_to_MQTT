@@ -34,11 +34,13 @@ class MessageBuffer:
             if self.buffer[topic]['update']:
                 #send message without trailing / on topic
                 if (topic!=''):
+                    #print('Publish :' + mqttTopicPrefix + '/' + topic + ' ' + self.buffer[topic]['value'])
                     self.mqtt.publish(mqttTopicPrefix+'/'+topic,self.buffer[topic]['value'],1,True)
                     self.logger.info('Publish :'+mqttTopicPrefix+'/'+topic+' '+self.buffer[topic]['value'])
                 else:
                     self.mqtt.publish(mqttTopicPrefix,self.buffer[topic]['value'],1,True)
                     self.logger.info('Publish :'+mqttTopicPrefix+' '+self.buffer[topic]['value'])
+                    #print('Publish :' + mqttTopicPrefix + ' ' + self.buffer[topic]['value'])
                 #set the flag to False
                 self.buffer[topic]['update']=False
 
@@ -74,13 +76,13 @@ def diematic3Publish(self):
     buffer.update('hotWater/dayTemp', floatValue(self.hot_water_day_target_temp))
     buffer.update('hotWater/nightTemp', floatValue(self.hot_water_night_target_temp))
 
-    #area A
-    buffer.update('zoneA/temp',floatValue(self.zoneATemp))
-    buffer.update('zoneA/mode', self.zone_a_mode if self.zone_a_mode is not None else '')
-    buffer.update('zoneA/pump',intValue(self.zoneAPump))
-    buffer.update('zoneA/dayTemp', floatValue(self.zone_a_day_target_temp))
-    buffer.update('zoneA/nightTemp', floatValue(self.zone_a_night_target_temp))
-    buffer.update('zoneA/antiiceTemp', floatValue(self.zone_a_antiice_target_temp))
+    #area C
+    buffer.update('zoneC/temp',floatValue(self.zoneCTemp))
+    buffer.update('zoneC/mode', self.zone_c_mode if self.zone_c_mode is not None else '')
+    buffer.update('zoneC/pump',intValue(self.zoneCPump))
+    buffer.update('zoneC/dayTemp', floatValue(self.zone_c_day_target_temp))
+    buffer.update('zoneC/nightTemp', floatValue(self.zone_c_night_target_temp))
+    buffer.update('zoneC/antiiceTemp', floatValue(self.zone_c_antiice_target_temp))
 
     #area B
     buffer.update('zoneB/temp',floatValue(self.zoneBTemp))
@@ -125,13 +127,13 @@ def haSendDiscoveryMessages(client, userdata, message):
         hassio.addNumber('hot_water_temp_night',"Température ECS Nuit",'hotWater/nightTemp','hotWater/nightTemp/set',10,80,5,"°C")
 
         #area A
-        hassio.addSensor('zone_A_temp',"Température Zone A",'temperature','zoneA/temp',None,"°C")
-        hassio.addSelect('zone_A_mode',"Mode Zone A",'zoneA/mode','zoneA/mode/set',['AUTO','TEMP JOUR','PERM JOUR','TEMP NUIT','PERM NUIT','ANTIGEL'])
-        hassio.addSensor('zone_A_mode',"Mode Zone A",None,'zoneA/mode',None,None)
-        hassio.addBinarySensor('zone_A_pump',"Pompe Zone A",None,'zoneA/pump',"1","0")
-        hassio.addNumber('zone_A_temp_day',"Température Jour Zone A",'zoneA/dayTemp','zoneA/dayTemp/set',5,30,0.5,"°C")
-        hassio.addNumber('zone_A_temp_night',"Température Nuit Zone A",'zoneA/nightTemp','zoneA/nightTemp/set',5,30,0.5,"°C")
-        hassio.addNumber('zone_A_temp_antiice',"Température Antigel Zone A",'zoneA/antiiceTemp','zoneA/antiiceTemp/set',5,20,0.5,"°C")
+        hassio.addSensor('zone_C_temp',"Température zone C",'temperature','zoneC/temp',None,"°C")
+        hassio.addSelect('zone_C_mode',"Mode zone C",'zoneC/mode','zoneC/mode/set',['AUTO','TEMP JOUR','PERM JOUR','TEMP NUIT','PERM NUIT','ANTIGEL'])
+        hassio.addSensor('zone_C_mode',"Mode zone C",None,'zoneC/mode',None,None)
+        hassio.addBinarySensor('zone_C_pump',"Pompe zone C",None,'zoneC/pump',"1","0")
+        hassio.addNumber('zone_C_temp_day',"Température Jour zone C",'zoneC/dayTemp','zoneC/dayTemp/set',5,30,0.5,"°C")
+        hassio.addNumber('zone_C_temp_night',"Température Nuit zone C",'zoneC/nightTemp','zoneC/nightTemp/set',5,30,0.5,"°C")
+        hassio.addNumber('zone_C_temp_antiice',"Température Antigel zone C",'zoneC/antiiceTemp','zoneC/antiiceTemp/set',5,20,0.5,"°C")
 
         #area B
         hassio.addSensor('zone_B_temp',"Température Zone B",'temperature','zoneB/temp',None,"°C")
@@ -164,10 +166,11 @@ def on_disconnect(client, userdata, rc):
     logger.critical('Diconnected from MQTT broker')
 
 def modeSet(client, userdata, message):
+    #print('mode set -> MQTT msg received :' + message.topic + ' ' + str(message.payload))
     #table for topic to attribute bind
     table={'/hotWater/mode/set':'hotWaterMode',
-        '/zoneA/mode/set':'zoneAMode',
-        '/zoneB/mode/set':'zoneBMode'}
+        '/zoneC/mode/set':'zone_c_mode',
+        '/zoneB/mode/set':'zone_b_mode'}
 
     #remove root of the topic
     shortTopic=message.topic[len(mqttTopicPrefix):]
@@ -175,6 +178,7 @@ def modeSet(client, userdata, message):
     #if topic exist
     if shortTopic in table:
         #process it
+        #print('set attr',table[shortTopic],message.payload.decode() )
         setattr(panel,table[shortTopic],message.payload.decode())
         logger.info(shortTopic+' : '+str(message.payload))
     else:
@@ -184,12 +188,12 @@ def tempSet(client, userdata, message):
     #table for topic to attribute bind
     table={'/hotWater/dayTemp/set':'hotWaterDayTargetTemp',
         '/hotWater/nightTemp/set':'hotWaterNightTargetTemp',
-        '/zoneA/dayTemp/set':'zoneADayTargetTemp',
-        '/zoneA/nightTemp/set':'zoneANightTargetTemp',
-        '/zoneA/antiiceTemp/set':'zoneAAntiiceTargetTemp',
+        '/zoneC/dayTemp/set':'zone_c_day_target_temp',
+        '/zoneC/nightTemp/set':'zone_c_night_target_temp',
+        '/zoneC/antiiceTemp/set':'zone_c_antiice_target_temp',
         '/zoneB/dayTemp/set':'zone_b_day_target_temp',
-        '/zoneB/nightTemp/set':'zoneBNightTargetTemp',
-        '/zoneB/antiiceTemp/set':'zoneBAntiiceTargetTemp'}
+        '/zoneB/nightTemp/set':'zone_b_night_target_temp',
+        '/zoneB/antiiceTemp/set':'zone_b_antiice_target_temp'}
 
     #remove root of the topic
     shortTopic=message.topic[len(mqttTopicPrefix):]
@@ -201,9 +205,7 @@ def tempSet(client, userdata, message):
         return
 
     #if topic exist
-    print('trying to set temp')
     if shortTopic in table:
-        print('set temp', table[shortTopic],value)
         #process it
         setattr(panel,table[shortTopic],value)
         logger.info(shortTopic+' : '+str(value))
@@ -229,7 +231,7 @@ def dateSet(client, userdata, message):
 def paramSet(client, userdata, message):
     try:
         logger.debug('MQTT msg received :'+message.topic+' '+str(message.payload))
-        print('MQTT msg received :' + message.topic + ' ' + str(message.payload))
+        #print('param set -> MQTT msg received :' + message.topic + ' ' + str(message.payload))
         if (message.topic[-8:]=='Temp/set'):
             tempSet(client, userdata, message)
         elif (message.topic[-8:]=='mode/set'):
