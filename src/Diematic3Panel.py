@@ -545,7 +545,7 @@ class Diematic3Panel:
 #this property is used by the Modbus loop to set register dedicated to Mode A and hotwater mode (in case of no usage of B area)		
     def mode_a_update(self):
         #if mode A register update request is pending
-        if (not(self.zoneAModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and (self.zoneBMode is None))):
+        if not(self.zoneAModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and (self.zone_a_mode is None)):
             #get current mode
             current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, 1)
             #in case of success
