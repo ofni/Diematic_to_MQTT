@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import socket
+import  serial
 
 def calc_crc(data):
     crc = 0xFFFF
@@ -114,26 +115,31 @@ class DDModbus:
         self.logger = logging.getLogger(__name__)
 
         #socket definition and connection
-        self.ip=ip
-        self.port=port
-        self.socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.ip,self.port))
+        self.ip = ip
+        self.port = port
+        #self.socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.socket.connect((self.ip,self.port))
+        self.socket = serial.Serial(port='/dev/ttyUSB0',
+                                    baudrate=9600,
+                                    parity=serial.PARITY_NONE,
+                                    stopbits=serial.STOPBITS_ONE,
+                                    bytesize=serial.EIGHTBITS)
 
     def clean(self):
-        run= False
+        run= True
         while run:
             try:
-                self.socket.settimeout(DDModbus.CLEANING_TIMEOUT)
-                data=self.socket.recv(1024)
+                self.socket.timeout = DDModbus.CLEANING_TIMEOUT
+                data = self.socket.read(1024)
                 self.logger.debug('Cleaning of: '+str(len(data))+' bytes(s)')
             except socket.error as exc:
                 run = False
 
     def slave_rx(self):
             try:
-                self.socket.settimeout(DDModbus.SLAVE_RX_TIMEOUT)
-                data=self.socket.recv(1024)
-                self.logger.debug('Frame received: '+data.hex())
+                self.socket.timeout = DDModbus.SLAVE_RX_TIMEOUT
+                data = self.socket.read(1024)
+                self.logger.debug('Frame received hex: ' + data.hex() + ' len: ' + str(len(data)))
 
                 #frame are never used and never acknowledged
                 frame = SlaveRequest(data)
@@ -175,8 +181,8 @@ class DDModbus:
 
         #wait for answer
         try:
-            self.socket.settimeout(DDModbus.MASTER_RX_TIMEOUT)
-            answer=self.socket.recv(1024)
+            self.socket.timeout = DDModbus.MASTER_RX_TIMEOUT
+            answer = self.socket.read(1024)
             self.logger.debug('Answer received: '+answer.hex())
 
             #check answer
@@ -255,8 +261,8 @@ class DDModbus:
 
         #wait for ack
         try:
-            self.socket.settimeout(DDModbus.MASTER_RX_TIMEOUT)
-            answer=self.socket.recv(1024)
+            self.socket.timeout = DDModbus.MASTER_RX_TIMEOUT
+            answer = self.socket.read(1024)
             self.logger.debug('Ack received: '+answer.hex())
             #check ack
             waited_ack=request[0:6]
