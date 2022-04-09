@@ -46,10 +46,10 @@ class SlaveRequest:
         #check rough length
         if (len(data) > self.FRAME_MAX_LENGTH) or (len(data) < self.FRAME_MIN_LENGTH ):
             self.logger.warning('Received Frame Length Error')
-            return
+            raise
 
         #if modBus feature is READ_ANALOG_HOLDING_REGISTERS
-        if data[1] == DDModbus.READ_ANALOG_HOLDING_REGISTERS:
+        if data[1] == 3: #DDModbus.READ_ANALOG_HOLDING_REGISTERS:
             #check CRC
             crc = calc_crc(data[0:6])
             if crc != 0x100*data[7]+data[6]:
@@ -65,7 +65,7 @@ class SlaveRequest:
 
 
         #if modBus feature is WRITE_MULTIPLE_REGISTERS
-        if data[1] == DDModbus.WRITE_MULTIPLE_REGISTERS:
+        if data[1] == 10: #DDModbus.WRITE_MULTIPLE_REGISTERS:
             #get register number
             reg_number = data[4]*0x100 + data[5]
 
@@ -139,7 +139,7 @@ class DDModbus:
             try:
                 self.socket.timeout = DDModbus.SLAVE_RX_TIMEOUT
                 data = self.socket.read(1024)
-                self.logger.debug('Frame received hex: ' + data.hex() + ' len: ' + str(len(data)))
+                self.logger.debug('Frame received: ' + data.hex())
 
                 #frame are never used and never acknowledged
                 frame = SlaveRequest(data)
@@ -154,10 +154,12 @@ class DDModbus:
                 #	tx.append(crc & 0xFF)
                 #	tx.append((crc >> 8) & 0xFF)
                 #	tx.append(0)
-                #	self.socket.send(tx)
+                #	self.socket.write(tx)
 
                 return frame
             except socket.error as exc:
+                return False
+            except Exception as exc:
                 return False
 
     def master_read_analog(self, modbus_address, reg_address, reg_nb):
@@ -177,7 +179,7 @@ class DDModbus:
 
         #send it
         self.logger.debug('Send read request: '+request.hex())
-        self.socket.send(request)
+        self.socket.write(request)
 
         #wait for answer
         try:
@@ -257,13 +259,15 @@ class DDModbus:
 
         #send it
         self.logger.info('Send write request: '+request.hex())
-        self.socket.send(request)
+        print('Send write request: ',request)
+        self.socket.write(request)
 
         #wait for ack
         try:
             self.socket.timeout = DDModbus.MASTER_RX_TIMEOUT
             answer = self.socket.read(1024)
             self.logger.debug('Ack received: '+answer.hex())
+            print('Ack received: ' + answer.hex())
             #check ack
             waited_ack=request[0:6]
             crc=calc_crc(waited_ack)
@@ -273,9 +277,11 @@ class DDModbus:
                 self.logger.info('Ack OK')
                 return True
             else:
+                print('Ack KO. Waited Ack was : '+waited_ack.hex())
                 self.logger.warning('Ack KO. Waited Ack was : '+waited_ack.hex())
                 return False
 
         except socket.error as exc:
+            print('No ack  to master write request', exc)
             self.logger.warning('No ack  to master write request')
             return False

@@ -7,6 +7,9 @@ import DDModbus
 import time,datetime,pytz
 from enum import IntEnum
 
+from itertools import groupby
+from operator import itemgetter
+
 #Target Temp min/max for hotwater
 TEMP_MIN_ECS = 10
 TEMP_MAX_ECS = 80
@@ -30,35 +33,104 @@ class DDREGISTER(IntEnum):
     JOUR_SEMAINE = 6
     TEMP_EXT = 7
     NB_JOUR_ANTIGEL = 13
-    CONS_JOUR_A = 14
-    CONS_NUIT_A = 15
-    CONS_ANTIGEL_A = 16
-    MODE_A = 17
-    TEMP_AMB_A = 18
-    TCALC_A = 21
     CONS_JOUR_B = 23
     CONS_NUIT_B = 24
     CONS_ANTIGEL_B = 25
     MODE_B = 26
     TEMP_AMB_B = 27
     TCALC_B = 32
+    CONS_JOUR_A = 35#14
+    CONS_NUIT_A = 36#15
+    CONS_ANTIGEL_A = 37#16
+    MODE_A = 38#17
+    TEMP_AMB_A = 39#18
+    TCALC_A = 44#21
     CONS_ECS = 59
     TEMP_ECS = 62
     TEMP_CHAUD = 75
+    BASE_ECS = 89#427
+    OPTIONS_B_C = 90#428
     CONS_ECS_NUIT = 96
     JOUR = 108
     MOIS = 109
     ANNEE = 110
-    BASE_ECS = 427
-    OPTIONS_B_C = 428
+    FAN_SPEED = 307#455
+    BOILER_TYPE = 308#457
     IONIZATION_CURRENT = 451
     RETURN_TEMP = 453
     SMOKE_TEMP = 454
-    FAN_SPEED = 455
     PRESSION_EAU = 456
-    BOILER_TYPE = 457
     PUMP_POWER = 463
     ALARME = 465
+
+
+class DinematicRegisters:
+
+    # ModBus Register Types
+    REAL10 = 0
+    BIT = 1
+    INTEGER = 2
+
+    registers = {
+        "CTRL"              : {"reg": 3, "value": None, type: ""},
+        "HEURE"             : {"reg": 4, "value": None, type: ""},
+        "MINUTE"            : {"reg": 5, "value": None, type: ""},
+        "JOUR_SEMAINE"      : {"reg": 6, "value": None, type: ""},
+        "TEMP_EXT"          : {"reg": 7, "value": None, type: ""},
+        "NB_JOUR_ANTIGEL"   : {"reg": 13, "value": None, type: ""},
+        "CONS_JOUR_B"       : {"reg": 23, "value": None, type: ""},
+        "CONS_NUIT_B"       : {"reg": 24, "value": None, type: ""},
+        "CONS_ANTIGEL_B"    : {"reg": 25, "value": None, type: ""},
+        "MODE_B"            : {"reg": 26, "value": None, type: ""},
+        "TEMP_AMB_B"        : {"reg": 27, "value": None, type: ""},
+        "TCALC_B"           : {"reg": 32, "value": None, type: ""},
+        "CONS_JOUR_A"       : {"reg": 35, "value": None, type: ""},
+        "CONS_NUIT_A"       : {"reg": 36, "value": None, type: ""},
+        "CONS_ANTIGEL_A"    : {"reg": 37, "value": None, type: ""},
+        "MODE_A"            : {"reg": 38, "value": None, type: ""},
+        "TEMP_AMB_A"        : {"reg": 39, "value": None, type: ""},
+        "TCALC_A"           : {"reg": 44, "value": None, type: ""},
+        "CONS_ECS"          : {"reg": 59, "value": None, type: ""},
+        "TEMP_ECS"          : {"reg": 62, "value": None, type: ""},
+        "TEMP_CHAUD"        : {"reg": 75, "value": None, type: ""},
+        "BASE_ECS"          : {"reg": 89, "value": None, type: ""},
+        "OPTIONS_B_C"       : {"reg": 90, "value": None, type: ""},
+        "CONS_ECS_NUIT"     : {"reg": 96, "value": None, type: ""},
+        "JOUR"              : {"reg": 108, "value": None, type: ""},
+        "MOIS"              : {"reg": 109, "value": None, type: ""},
+        "ANNEE"             : {"reg": 110, "value": None, type: ""},
+        "FAN_SPEED"         : {"reg": 307, "value": None, type: ""},
+        "BOILER_TYPE"       : {"reg": 308, "value": None, type: ""},
+        "IONIZATION_CURRENT": {"reg": 451, "value": None, type: ""},
+        "RETURN_TEMP"       : {"reg": 453, "value": None, type: ""},
+        "SMOKE_TEMP"        : {"reg": 454, "value": None, type: ""},
+        "PRESSION_EAU"      : {"reg": 456, "value": None, type: ""},
+        "PUMP_POWER"        : {"reg": 463, "value": None, type: ""},
+        "ALARME"            : {"reg": 465, "value": None, type: ""},
+    }
+
+    registers_inverted = None
+    ranges = []
+
+    def __init__(self):
+        self.sort_registers()
+        self.invert_registers()
+        self.find_range()
+
+    def find_range(self):
+        data = [x for x in self.registers_inverted.keys()]
+        for k, g in groupby(enumerate(data), lambda ix : ix[0] - ix[1]):
+            self.ranges.append(list(map(itemgetter(1), g)))
+
+    def invert_registers(self):
+        self.registers_inverted =  {value["reg"]: key for key, value in self.registers.items() }
+        return self.registers_inverted
+
+    def sort_registers(self):
+        self.registers = { x[0]:x[1] for x in sorted(self.registers.items(), key=lambda x: x[1]['reg'])}
+
+
+
 
 #This class allow to read/write parameters to Diematic regulator with the helo of a RS485/TCP IP converter
 #refresh of attributes From regulator is done roughly every minute
@@ -108,6 +180,8 @@ class Diematic3Panel:
     masterSlaveSynchro = None
     lastSynchroTimestamp = None
 
+    test = {0:False, 1:False, 2:False, 3:False}
+
     def __init__(self, ip, port, regulator_address, boiler_timezone):
         #parameter refresh period
 
@@ -138,7 +212,8 @@ class Diematic3Panel:
         self.hotWaterModeUpdateRequest = queue.Queue()
 
         #dictionnary used to save registers data read from the regulator
-        self.registers = dict()
+        self.registers = {v.value: 1 for v in DDREGISTER}
+        #self.registers2 = DinematicRegisters()
 
         #init values of functional attributes
         self.init_regulator()
@@ -153,7 +228,7 @@ class Diematic3Panel:
         #RS485 converter connexion init
         self.modBusInterface = DDModbus.DDModbus(self.ip,self.port)
         self.logger.warning('Init Link with Regulator')
-        self.modBusInterface.clean()
+        #self.modBusInterface.clean()
 
     def init_attributes(self):
         #regulator attributes
@@ -278,6 +353,7 @@ class Diematic3Panel:
 
     @zone_b_day_target_temp.setter
     def zone_b_day_target_temp(self, x):
+            print('in setter')
             #register structure creation, only 0.5 multiple are usable, temp is in tenth of degree
             reg = DDModbus.RegisterSet(DDREGISTER.CONS_JOUR_B.value,[min(max(round(2*x)*5,TEMP_MIN_INT*10),TEMP_MAX_INT*10)])
             self.regUpdateRequest.put(reg)
@@ -360,19 +436,95 @@ class Diematic3Panel:
         self.regUpdateRequest.put(reg)
 
 #this property is used to get register values from the regulator
-    def refresh_registers(self):
+    def refresh_registers_old(self):
+
         #update registers 1->63
-        reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 1, 63)
-        if reg is not None:
-            self.registers.update(reg)
-        else:
-            return False
+        print('update registers 1->63')
+        for reg in range(1, 63):
+            if not self.registers.get(reg):
+                reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
+                if reg is not None:
+                    self.registers.update(reg)
+
+        # update registers 64->127
+        print('update registers 64->127')
+        for reg in range(64, 127):
+            if not self.registers.get(reg):
+                reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
+                if reg is not None:
+                    self.registers.update(reg)
+
+        # update registers 384->447
+        print('update registers 384->447')
+        for reg in range(384, 447):
+            if not self.registers.get(reg):
+                reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
+                if reg is not None:
+                    self.registers.update(reg)
+
+        # update registers 448->470
+        print('update registers 448->470')
+        for reg in range(448, 470):
+            if not self.registers.get(reg):
+                reg = self.modBusInterface.master_read_analog(self.regulatorAddress, reg, 1)
+                if reg is not None:
+                    self.registers.update(reg)
+
+        # #display register table on standard output
+        # #regLine = ""
+        # #for index in range(256):
+        # #	try:
+        # #		regLine += '{:04X}'.format(self.registers[index])+' '
+        # #	except KeyError:
+        # #		regLine += '---- '
+        #
+        # #	if (index % 16) == 15:
+        # #		regLine = '{:01X}'.format(index >>4)+'0: '+regLine
+        # #		print(regLine)
+        # #		regLine = ''
+        #
+        # #print('==========================================')
+        return True
+
+    def refresh_registers(self):
+        #print('refresh_register')
+
+        #update registers 307->308
+        if not self.test[0]:
+            #print("update registers 307->308")
+            reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 307, 2)
+            if reg is not None:
+                #print("update registers 307->308 OK", reg)
+                self.test[0] = True
+                self.registers.update(reg)
+
+        # #update registers 451-> 465
+        if not self.test[1]:
+            #print("update registers 451->465")
+            reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 451, 15)
+            if reg is not None:
+                #print("update registers 451->465 OK", reg)
+                self.test[1] = True
+                self.registers.update(reg)
+
+        #update registers 1->63
+        if not self.test[2]:
+            #print('update registers 1->63')
+            reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 1, 63)
+            if reg is not None:
+                #print('update registers 1->63 OK', reg)
+                self.test[2] = True
+                self.registers.update(reg)
+
         #update registers 64->127
-        reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 64, 64)
-        if reg is not None:
-            self.registers.update(reg)
-        else:
-            return False
+        if not self.test[3]:
+            #print('update registers 64->127')
+            reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 64, 64)
+            if reg is not None:
+                #print('update registers 64->127 OK', reg)
+                self.test[3] = True
+                self.registers.update(reg)
+
 
         #update registers 128->191
         #reg = self.modBusInterface.masterReadAnalog(self.regulatorAddress,128,64)
@@ -387,19 +539,14 @@ class Diematic3Panel:
         #	self.registers.update(reg)
         #else:
         #	return(False)
-
-        #update registers 384->447
-        reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 384, 64)
-        if reg is not None:
-            self.registers.update(reg)
-        else:
-            return False
-        #update registers 448->470
-        reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 448, 23)
-        if reg is not None:
-            self.registers.update(reg)
-        else:
-            return False
+        #
+        # #update registers 384->447
+        # print('update registers 384->447')
+        # reg = self.modBusInterface.master_read_analog(self.regulatorAddress, 384, 64)
+        # if reg is not None:
+        #     print('update registers 384->447 OK', reg)
+        #     self.registers.update(reg)
+        #
 
         #display register table on standard output
         #regLine = ""
@@ -546,6 +693,7 @@ class Diematic3Panel:
     def mode_a_update(self):
         #if mode A register update request is pending
         if not(self.zoneAModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and (self.zone_a_mode is None)):
+            print('...........MODE A UPDATE............')
             #get current mode
             current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_A.value, 1)
             #in case of success
@@ -594,6 +742,7 @@ class Diematic3Panel:
     def mode_b_update(self):
         #if mode B register update request is pending
         if not(self.zoneBModeUpdateRequest.empty()) or (not(self.hotWaterModeUpdateRequest.empty()) and self.zone_b_mode):
+            print('...........MODE B UPDATE............')
             #get current mode
             current_mode = self.modBusInterface.master_read_analog(self.regulatorAddress, DDREGISTER.MODE_B.value, 1)
             #in case of success
@@ -680,9 +829,11 @@ class Diematic3Panel:
                         self.mode_b_update()
 
                         #while general register update request are pending and Master mode is started since less than 2s
+                        print('here !', self.regUpdateRequest.empty(), time.time()-self.masterTime )
                         while not(self.regUpdateRequest.empty()) and ((time.time()-self.masterTime) < 2):
                             reg_set = self.regUpdateRequest.get(False)
                             self.logger.debug('Write Request :'+str(reg_set.address)+':'+str(reg_set.data))
+                            print('Write Request :' + str(reg_set.address) + ':' + str(reg_set.data))
                             #write to Analog registers
                             if not self.modBusInterface.master_write_analog(self.regulatorAddress, reg_set.address, reg_set.data):
                                 #And cancel Master Slave Synchro Flag in case of error
@@ -705,6 +856,10 @@ class Diematic3Panel:
                                 #Cancel Master Slave Synchro Flag in case of error
                                 self.logger.warning('ModBus Master Slave Synchro Error')
                                 self.masterSlaveSynchro = False
+
+                if all([self.test[i] for i in range(4)]):
+                    self.logger.warning('Resetting registers values')
+                    self.test = {i:False for i in range(4)}
 
                 if (time.time()-self.lastSynchroTimestamp) > self.refreshPeriod + VALIDITY_TIME:
                     #log

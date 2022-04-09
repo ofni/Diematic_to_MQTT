@@ -1,13 +1,13 @@
 ﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys,signal,threading
+import signal,threading
 import configparser
 import logging, logging.config
 import DDModbus,Diematic3Panel,Hassio
 import paho.mqtt.client as mqtt
 import json
-import time,datetime
+import time, datetime
 
 class MessageBuffer:
     def __init__(self,mqtt):
@@ -187,7 +187,7 @@ def tempSet(client, userdata, message):
         '/zoneA/dayTemp/set':'zoneADayTargetTemp',
         '/zoneA/nightTemp/set':'zoneANightTargetTemp',
         '/zoneA/antiiceTemp/set':'zoneAAntiiceTargetTemp',
-        '/zoneB/dayTemp/set':'zoneBDayTargetTemp',
+        '/zoneB/dayTemp/set':'zone_b_day_target_temp',
         '/zoneB/nightTemp/set':'zoneBNightTargetTemp',
         '/zoneB/antiiceTemp/set':'zoneBAntiiceTargetTemp'}
 
@@ -201,7 +201,9 @@ def tempSet(client, userdata, message):
         return
 
     #if topic exist
+    print('trying to set temp')
     if shortTopic in table:
+        print('set temp', table[shortTopic],value)
         #process it
         setattr(panel,table[shortTopic],value)
         logger.info(shortTopic+' : '+str(value))
@@ -227,6 +229,7 @@ def dateSet(client, userdata, message):
 def paramSet(client, userdata, message):
     try:
         logger.debug('MQTT msg received :'+message.topic+' '+str(message.payload))
+        print('MQTT msg received :' + message.topic + ' ' + str(message.payload))
         if (message.topic[-8:]=='Temp/set'):
             tempSet(client, userdata, message)
         elif (message.topic[-8:]=='mode/set'):
@@ -267,6 +270,8 @@ if __name__ == '__main__':
         #MQTT settings
         mqttBrokerHost=config.get('MQTT','brokerHost')
         mqttBrokerPort=config.get('MQTT','brokerPort')
+        mqttBrokerUser=config.get('MQTT','brokerUser')
+        mqttBrokerPassword=config.get('MQTT','brokerPassword')
 
         mqttClientId=config.get('MQTT','clientId')
         mqttTopicPrefix=config.get('MQTT','topicPrefix')+'/'+mqttClientId
@@ -292,6 +297,8 @@ if __name__ == '__main__':
 
         #init mqtt brooker
         client = mqtt.Client()
+        if mqttBrokerPassword and mqttBrokerUser:
+            client.username_pw_set(mqttBrokerUser, mqttBrokerPassword)
         client.on_connect = on_connect
         client.on_disconnect = on_disconnect
         #last will
