@@ -1,17 +1,20 @@
 ﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import signal,threading
 import configparser
-import logging, logging.config
-from Boiler import Diematic, DinematicRegisters, DDREGISTER
-import paho.mqtt.client as mqtt
+import datetime
 import json
-import time, datetime
+import logging.config
+import signal
+import time
+import threading
+
+import paho.mqtt.client as mqtt
+
+from Boiler import Diematic, DDREGISTER, DienematicRegisters
 
 
 class MqttBroker:
-
 
     def __init__(self, conf):
 
@@ -20,8 +23,9 @@ class MqttBroker:
         user = conf.get('MQTT', 'brokerUser')
         pwd = conf.get('MQTT', 'brokerPassword')
 
-        self.mqttClientId = conf.get('MQTT', 'clientId')
-        self.mqttTopicPrefix = conf.get('MQTT', 'topicPrefix') + '/' + self.mqttClientId
+        mqttClientId = conf.get('MQTT', 'clientId')
+
+        self.mqttTopicPrefix = conf.get('MQTT', 'topicPrefix') + '/' + mqttClientId
 
         logger.critical(f'Root topic: {self.mqttTopicPrefix}')
 
@@ -32,9 +36,7 @@ class MqttBroker:
             self.client.username_pw_set(user, pwd)
 
         self.client.will_set(self.mqttTopicPrefix + '/boiler/status', "Offline", 1, True)
-
         self.client.connect_async(host, int(port))
-
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
 
@@ -52,10 +54,7 @@ class MqttBroker:
         if registers:
             for register in registers:
                 self.client.publish(
-                        f"{self.mqttTopicPrefix}/{register['system']}/{register['name']}",
-                        str(register['value']),
-                        1,
-                        True
+                        f"{self.mqttTopicPrefix}/{register['system']}/{register['name']}", str(register['value']), 1, True
                 )
         else:
             print("nothing to publish")
@@ -67,7 +66,8 @@ class MqttBroker:
         client.subscribe(f'{self.mqttTopicPrefix}/temp/reset', 2)
 
     def on_disconnect(self, client, userdata, rc):
-        print('Diconnected from MQTT broker')
+        print('Disconnected from MQTT broker')
+
 
 class Boiler:
 
@@ -107,12 +107,12 @@ class Boiler:
             date = datetime.datetime.now()
             print('datetime requested:' + date.isoformat())
 
-            #request hour/minute/weekday registers change
+            # Request hour/minute/weekday registers change
             self.boiler.write_register(DDREGISTER.HEURE, date.hour)
-            self.boiler.write_register(DDREGISTER.MINUTE, (date.minute))
+            self.boiler.write_register(DDREGISTER.MINUTE, date.minute)
             self.boiler.write_register(DDREGISTER.JOUR_SEMAINE, date.isoweekday())
 
-            #request day/month/year registers change
+            # Request day/month/year registers change
             self.boiler.write_register(DDREGISTER.MOIS, date.month)
             self.boiler.write_register(DDREGISTER.JOUR, date.day)
             self.boiler.write_register(DDREGISTER.ANNEE, date.year % 100)
@@ -121,7 +121,7 @@ class Boiler:
 
         message = json.loads(message.payload.decode('utf-8'))
 
-        cons_temps= [
+        cons_temps = [
             message.get('jour', DDREGISTER.DEFAULT_CONS_JOUR),
             message.get('nuit', DDREGISTER.DEFAULT_CONS_NUIT),
             message.get('antigel', DDREGISTER.DEFAULT_CONS_ANTIGEL)
@@ -139,7 +139,6 @@ class Boiler:
         self.boiler.write_register(DDREGISTER.CONS_NUIT_C, temps[1])
         self.boiler.write_register(DDREGISTER.CONS_ANTIGEL_C, temps[2])
 
-
     def loop_start(self):
         self.mqtt_client.loop_start()
         self.boiler.loop_start()
@@ -149,10 +148,9 @@ class Boiler:
         self.boiler.loop_stop()
 
 
-
 def sigterm_exit(signum, frame):
-            logger.critical('Stop requested by SIGTERM, raising KeyboardInterrupt')
-            raise KeyboardInterrupt
+        logger.critical('Stop requested by SIGTERM, raising KeyboardInterrupt')
+        raise KeyboardInterrupt
 
 
 if __name__ == '__main__':
@@ -161,31 +159,30 @@ if __name__ == '__main__':
     logging.config.fileConfig('logging.conf')
     logger = logging.getLogger(__name__)
 
-    #Sigterm trapping
+    # Sigterm trapping
     signal.signal(signal.SIGTERM, sigterm_exit)
     try:
-        #Initialisation config
+        # Initialisation config
         config = configparser.ConfigParser()
         config.read('Diematic32MQTT.conf')
 
-
-        #Modbus settings
-        modbusAddress=config.get('Modbus','ip')
-        modbusPort=config.get('Modbus','port')
-        modbusRegulatorAddress=int(config.get('Modbus','regulatorAddress'),0)
+        # Modbus settings
+        modbusAddress = config.get('Modbus', 'ip')
+        modbusPort = config.get('Modbus', 'port')
+        modbusRegulatorAddress = int(config.get('Modbus', 'regulatorAddress'), 0)
         logger.critical('Modbus interface address: '+modbusAddress+' : '+modbusPort)
         logger.critical('Modbus regulator address: ' + hex(modbusRegulatorAddress))
 
-        #init Boiler
+        # Init Boiler
         boiler = Boiler(config)
         boiler.loop_start()
 
         run = True
         while run:
-            #check every 10s that all threads are living
+            # Check every 10s that all threads are living
             time.sleep(10)
 
-            if (threading.active_count()!=3 and threading.active_count()!=6):
+            if threading.active_count() != 3 and threading.active_count() != 6:
                 logger.critical('At least one process has been killed, stop launched')
                 run = False
         boiler.loop_stop()

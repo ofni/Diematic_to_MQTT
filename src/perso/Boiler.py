@@ -7,8 +7,10 @@ from operator import itemgetter
 import threading
 from enum import IntEnum
 
+
 class DDREGISTER(IntEnum):
 
+    # not real registers, it more a configuration
     DEFAULT_CONS_JOUR = 20
     DEFAULT_CONS_NUIT = 18
     DEFAULT_CONS_ANTIGEL = 13
@@ -40,14 +42,14 @@ class DDREGISTER(IntEnum):
     CONS_ECS = 59
     TEMP_ECS = 62
     TEMP_CHAUD = 75
-    BASE_ECS = 89#427
-    OPTIONS_B_C = 90#428
+    BASE_ECS = 89  # 427
+    OPTIONS_B_C = 90  # 428
     CONS_ECS_NUIT = 96
     JOUR = 108
     MOIS = 109
     ANNEE = 110
-    FAN_SPEED = 307#455
-    BOILER_TYPE = 308#457
+    FAN_SPEED = 307  # 455
+    BOILER_TYPE = 308  # 457
     IONIZATION_CURRENT = 451
     RETURN_TEMP = 453
     SMOKE_TEMP = 454
@@ -55,7 +57,8 @@ class DDREGISTER(IntEnum):
     PUMP_POWER = 463
     ALARME = 465
 
-class DinematicRegisters:
+
+class DienematicRegisters:
 
     registers = {
         DDREGISTER.CTRL:            {"name": "CTRL", "value": None, "type": "decimal", "system": "boiler"},
@@ -69,19 +72,19 @@ class DinematicRegisters:
         DDREGISTER.CONS_ANTIGEL_B:  {"name": "CONS_ANTIGEL_B", "value": None, "type": "decimal", "system": "circuit_B"},
         DDREGISTER.MODE_B:          {"name": "MODE_B_bits", "value": None, "type": "bits", "system": "circuit_B"},
         DDREGISTER.TEMP_AMB_B:      {"name": "TEMP_AMB_B", "value": None, "type": "decimal", "system": "circuit_B"},
-        DDREGISTER.TCALC_B :        {"name": "TCALC_B", "value": None, "type": "decimal", "system": "circuit_B"},
-        DDREGISTER.CONS_JOUR_C :    {"name": "CONS_JOUR_C", "value": None, "type": "decimal", "system": "circuit_C"},
-        DDREGISTER.CONS_NUIT_C :    {"name": "CONS_NUIT_C", "value": None, "type": "decimal", "system": "circuit_C"},
-        DDREGISTER.CONS_ANTIGEL_C : {"name": "CONS_ANTIGEL_C", "value": None, "type": "decimal", "system": "circuit_C"},
-        DDREGISTER.MODE_C :         {"name": "MODE_C_bits", "value": None, "type": "bits", "system": "circuit_C"},
-        DDREGISTER.TEMP_AMB_C :     {"name": "TEMP_AMB_C", "value": None, "type": "decimal", "system": "circuit_C"},
-        DDREGISTER.TCALC_C :        {"name": "TCALC_C", "value": None, "type": "decimal", "system": "circuit_C"},
-        DDREGISTER.CONS_ECS :       {"name": "CONS_ECS_JOUR", "value": None, "type": "decimal", "system": "ECS"},
-        DDREGISTER.TEMP_ECS :       {"name": "TEMP_ECS", "value": None, "type": "decimal", "system": "ECS"},
-#        75 : {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
-        DDREGISTER.BASE_ECS :       {"name": "MODE_ECS", "value": None, "type": "decimal", "system": "ECS"},
-        DDREGISTER.OPTIONS_B_C :    {"name": "OPTIONS_B_C", "value": None, "type": "decimal", "system": "ECS"},
-        DDREGISTER.CONS_ECS_NUIT :  {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
+        DDREGISTER.TCALC_B:         {"name": "TCALC_B", "value": None, "type": "decimal", "system": "circuit_B"},
+        DDREGISTER.CONS_JOUR_C:     {"name": "CONS_JOUR_C", "value": None, "type": "decimal", "system": "circuit_C"},
+        DDREGISTER.CONS_NUIT_C:     {"name": "CONS_NUIT_C", "value": None, "type": "decimal", "system": "circuit_C"},
+        DDREGISTER.CONS_ANTIGEL_C:  {"name": "CONS_ANTIGEL_C", "value": None, "type": "decimal", "system": "circuit_C"},
+        DDREGISTER.MODE_C:          {"name": "MODE_C_bits", "value": None, "type": "bits", "system": "circuit_C"},
+        DDREGISTER.TEMP_AMB_C:      {"name": "TEMP_AMB_C", "value": None, "type": "decimal", "system": "circuit_C"},
+        DDREGISTER.TCALC_C:         {"name": "TCALC_C", "value": None, "type": "decimal", "system": "circuit_C"},
+        DDREGISTER.CONS_ECS:        {"name": "CONS_ECS_JOUR", "value": None, "type": "decimal", "system": "ECS"},
+        DDREGISTER.TEMP_ECS:        {"name": "TEMP_ECS", "value": None, "type": "decimal", "system": "ECS"},
+#       DDREGISTER.TEMP_CHAUD:      {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
+        DDREGISTER.BASE_ECS:        {"name": "MODE_ECS", "value": None, "type": "bits", "system": "ECS"},
+        DDREGISTER.OPTIONS_B_C:     {"name": "OPTIONS_B_C", "value": None, "type": "decimal", "system": "ECS"},
+        DDREGISTER.CONS_ECS_NUIT:   {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
         DDREGISTER.JOUR:            {"name": "JOUR", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.MOIS:            {"name": "MOIS", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.ANNEE:           {"name": "ANNEE", "value": None, "type": "integer", "system": "boiler"},
@@ -102,7 +105,7 @@ class DinematicRegisters:
 
     def find_range(self):
         data = [x for x in self.registers.keys()]
-        for k, g in groupby(enumerate(data), lambda ix : ix[0] - ix[1]):
+        for k, g in groupby(enumerate(data), lambda ix: ix[0] - ix[1]):
             self.ranges.append(list(map(itemgetter(1), g)))
 
     def sort_registers(self):
@@ -119,11 +122,11 @@ class DinematicRegisters:
             return self._decode_bit(value)
 
     def _decode_decimal(self, value, decimals=1):
-        if (value == 65535):
+        if value == 65535:
             return None
         else:
             output = value & 0x7FFF
-        if (value >> 15 == 1):
+        if value >> 15 == 1:
             output = -output
         return float(output) / 10 ** decimals
 
@@ -134,6 +137,7 @@ class DinematicRegisters:
         return list("{0:016b}".format(value))
 
     def decode_mode(self, reg):
+
 
         value = int('0b' + "".join(self.registers[reg]['value']), 2)
 
@@ -193,24 +197,28 @@ class DinematicRegisters:
     def reset_values(self):
         """
         reset all register values to none
-        and refill queu with all registers to get
+        and refill queue with all registers to get
         """
         for reg in self.registers.values():
-           reg["value"] = None
+            reg["value"] = None
 
     def get_registers(self):
+
+        """"
+
+        """
 
         registers = list(self.registers.values())
 
         boiler_datetime = datetime(self.registers[110]['value'] + 2000, self.registers[109]['value'], self.registers[108]['value'], self.registers[4]['value'], self.registers[5]['value'], 0, 0)
 
         registers.append({"name": "status", "value": "Online", "type": "string", "system": "boiler"})
-        registers.append({"name": "MODE_B", "value":self.decode_mode(26), "type": "decimal", "system": "circuit_B"})
-        registers.append({"name": "MODE_C", "value": self.decode_mode(38), "type": "decimal", "system": "circuit_C"})
+        registers.append({"name": "MODE_B", "value": self.decode_mode(DDREGISTER.MODE_B), "type": "decimal", "system": "circuit_B"})
+        registers.append({"name": "MODE_C", "value": self.decode_mode(DDREGISTER.MODE_C), "type": "decimal", "system": "circuit_C"})
         registers.append({"name": "DATE", "value": boiler_datetime, "type": "string", "system": "boiler"})
         registers.append({"name": "ALARME", "value": self.decode_alarm(), "type": "integer", "system": "boiler"})
 
-        #burnerStatus = (self.registers[89]['value'] & 0x08) >>3
+        #burnerStatus = (self.registers[DDREGISTER.BASE_ECS]['value'] & 0x08) >>3
         # #burner power calculation with fans peed and ionization current
         FAN_SPEED_MAX = 5900
         #burnerPower = round((self.registers[307]['value'] / FAN_SPEED_MAX)*100) if (self.registers[451]['value']>0) else 0
@@ -226,13 +234,13 @@ class Diematic:
     modBusInterface = None
     run_loop = True
     busStatus = 'INIT'
-    registers = DinematicRegisters()
+    registers = DienematicRegisters()
 
-    def __init__(self,publish_function, port='/dev/ttyUSB0'):
-            self.modBusInterface = ModbusClient(method='rtu', port=port, baudrate=9600)
-            for range in self.registers.ranges:
-                self.register_to_read.put(range)
-            self.publisher = publish_function
+    def __init__(self, publish_function, port='/dev/ttyUSB0'):
+        self.modBusInterface = ModbusClient(method='rtu', port=port, baudrate=9600)
+        for range in self.registers.ranges:
+            self.register_to_read.put(range)
+        self.publisher = publish_function
 
     def write_register(self, register, value):
         self.register_to_write.put({"register": register, "value": value})
@@ -262,22 +270,22 @@ class Diematic:
 
             # depending current bus mode
             if self.busStatus != 'SLAVE' and frame:
-                    # switch mode to slave
-                    self.busStatus = "SLAVE"
-                    slaveTime = time.time()
-                    #print('Bus status switched to SLAVE')
+                # switch mode to slave
+                self.busStatus = "SLAVE"
+                slave_time = time.time()
+                #print('Bus status switched to SLAVE')
 
             elif self.busStatus == "SLAVE":
-                slave_mode_duration = time.time() - slaveTime
+                slave_mode_duration = time.time() - slave_time
                 if (not frame) and (slave_mode_duration > 5):
-                    masterTime = time.time()
+                    master_time = time.time()
                     self.busStatus = "MASTER"
                     #print(f'Bus status switched to MASTER after {str(slave_mode_duration)}')
 
                     current_time = time.time()
                     #print('empty', self.register_to_write.empty())
-                    if (not self.register_to_write.empty()):
-                        while (not self.register_to_write.empty()) and (current_time - masterTime < 5):
+                    if not self.register_to_write.empty():
+                        while (not self.register_to_write.empty()) and (current_time - master_time < 5):
                             current_time = time.time()
 
                             try:
@@ -289,15 +297,14 @@ class Diematic:
                                     print("error while writing reg: {reg}")
                                     self.register_to_read.put(reg)
                             except Exception as e:
-                                print('error')
+                                print(e)
                                 break
                             #print(f"writing register {reg['register']} with value: {reg['value']}")
 
-
                     else:
-                        while (not self.register_to_read.empty()) and (current_time - masterTime < 5):
+                        while (not self.register_to_read.empty()) and (current_time - master_time < 5):
                             current_time = time.time()
-                            #print('loop reading registers', current_time - masterTime)
+                            #print('loop reading registers', current_time - master_time)
 
                             range = self.register_to_read.get()
                             range_min = range[0]
@@ -315,9 +322,9 @@ class Diematic:
                                     self.registers.set_value(reg, res.registers[idx])
 
                         if self.register_to_read.empty():
-                            #print('all registers read', current_time - masterTime)
-                            #self.registers.dump_registers()
-                            #self.registers.dump_raw_register(610)
+                            #print('all registers read', current_time - master_time)
+                            # self.registers.dump_registers()
+                            self.registers.dump_raw_register([DDREGISTER.MODE_C, DDREGISTER.MODE_B])
                             self.publisher.send(self.registers.get_registers())
                             self.reset_queue()
 
