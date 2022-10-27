@@ -263,7 +263,9 @@ class DiematicModbusInterface:
 
     def loop(self):
 
-        self.modBusInterface.connect()
+        while not (connected := self.modBusInterface.connect()):
+            self.logger.critical('modbus interface not ready')
+            connected = True
 
         while self.run_loop:
             #print('new loop !')
