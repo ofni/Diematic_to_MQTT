@@ -34,6 +34,9 @@ class Boiler:
             register = DDREGISTER.MODE_B
         elif message.topic == 'home/heater2/boiler/circuit_C/mode/set':
             register = DDREGISTER.MODE_C
+        else:
+            print(f"set mode, topic <{message.topic}> not subscribe !")
+            return
 
         if mode == 'AUTO':
             self.boiler.write_register(register, 8)
