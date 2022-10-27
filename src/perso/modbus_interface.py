@@ -18,17 +18,30 @@ class DDREGISTER(IntEnum):
 
     # not real registers, it more a configuration
     DEFAULT_CONS_JOUR = 20
-    DEFAULT_CONS_NUIT = 18
+    DEFAULT_CONS_NUIT = DEFAULT_CONS_JOUR - 3
     DEFAULT_CONS_ANTIGEL = 13
 
     TEMP_MIN_INT = 5
     TEMP_MAX_INT = 30
 
+    TEMP_MAX_ECS = 80
+    TEMP_MIN_ECS = 10
+
+    FAN_SPEED_MAX = 5900
+
+    # TEMPO
+    TYPE_CIRCUIT = 303
+    PUISS_INST = 471
+    PUISS_INST_MOY = 472
+
+    # Diematic registers
     CTRL = 3
     HEURE = 4
     MINUTE = 5
     JOUR_SEMAINE = 6
     TEMP_EXT = 7
+    TEMP_ETE_HIVER = 8
+    ADAPTATION = 12
     NB_JOUR_ANTIGEL = 13
 
     CONS_JOUR_B = 23
@@ -47,6 +60,7 @@ class DDREGISTER(IntEnum):
 
     CONS_ECS = 59
     TEMP_ECS = 62
+    PERMUTATION = 63
     TEMP_CHAUD = 75
     BASE_ECS = 89  # 427
     OPTIONS_B_C = 90  # 428
@@ -67,11 +81,13 @@ class DDREGISTER(IntEnum):
 class DienematicRegisters:
 
     registers = {
-        DDREGISTER.CTRL:            {"name": "CTRL", "value": None, "type": "decimal", "system": "boiler"},
+        DDREGISTER.PUISS_INST: {"name": "PUISS_INST", "value": None, "type": "integer", "system": "boiler"},
+#        DDREGISTER.CTRL:            {"name": "CTRL", "value": None, "type": "decimal", "system": "boiler"},
         DDREGISTER.HEURE:           {"name": "HEURE", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.MINUTE:          {"name": "MINUTE", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.JOUR_SEMAINE:    {"name": "JOUR_SEMAINE", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.TEMP_EXT:        {"name": "TEMP_EXT", "value": None, "type": "decimal", "system": "boiler"},
+#        DDREGISTER.TEMP_ETE_HIVER: {"name": "TEMP_E_H", "value": None, "type": "decimal", "system": "boiler"},
         DDREGISTER.NB_JOUR_ANTIGEL: {"name": "NB_JOUR_ANTIGEL", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.CONS_JOUR_B:     {"name": "CONS_JOUR_B", "value": None, "type": "decimal", "system": "circuit_B"},
         DDREGISTER.CONS_NUIT_B:     {"name": "CONS_NUIT_B", "value": None, "type": "decimal", "system": "circuit_B"},
@@ -87,9 +103,8 @@ class DienematicRegisters:
         DDREGISTER.TCALC_C:         {"name": "TCALC_C", "value": None, "type": "decimal", "system": "circuit_C"},
         DDREGISTER.CONS_ECS:        {"name": "CONS_ECS_JOUR", "value": None, "type": "decimal", "system": "ECS"},
         DDREGISTER.TEMP_ECS:        {"name": "TEMP_ECS", "value": None, "type": "decimal", "system": "ECS"},
-#       DDREGISTER.TEMP_CHAUD:      {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
-        DDREGISTER.BASE_ECS:        {"name": "MODE_ECS", "value": None, "type": "bits", "system": "ECS"},
-        DDREGISTER.OPTIONS_B_C:     {"name": "OPTIONS_B_C", "value": None, "type": "decimal", "system": "ECS"},
+        DDREGISTER.BASE_ECS:        {"name": "BASE_ECS", "value": None, "type": "bits", "system": "ECS"},
+        DDREGISTER.OPTIONS_B_C:     {"name": "OPTIONS_B_C", "value": None, "type": "bits", "system": "ECS"},
         DDREGISTER.CONS_ECS_NUIT:   {"name": "CONS_ECS_NUIT", "value": None, "type": "decimal", "system": "ECS"},
         DDREGISTER.JOUR:            {"name": "JOUR", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.MOIS:            {"name": "MOIS", "value": None, "type": "integer", "system": "boiler"},
@@ -97,10 +112,10 @@ class DienematicRegisters:
         DDREGISTER.FAN_SPEED:       {"name": "FAN_SPEED", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.BOILER_TYPE:     {"name": "BOILER_type", "value": None, "type": "integer", "system": "boiler"},
         DDREGISTER.IONIZATION_CURRENT: {"name": "IONIZATION_CURRENT", "value": None, "type": "decimal", "system": "boiler"},
-        DDREGISTER.RETURN_TEMP:     {"name": "RETURN_TEMP", "value": None, "type": "decimal", "system": "boiler"},
-        DDREGISTER.SMOKE_TEMP:      {"name": "SMOKE_TEMP", "value": None, "type": "decimal", "system": "boiler"},
+#        DDREGISTER.RETURN_TEMP:     {"name": "RETURN_TEMP", "value": None, "type": "decimal", "system": "boiler"},
+#        DDREGISTER.SMOKE_TEMP:      {"name": "SMOKE_TEMP", "value": None, "type": "decimal", "system": "boiler"},
         DDREGISTER.PRESSION_EAU:    {"name": "PRESSION_EAU", "value": None, "type": "decimal", "system": "boiler"},
-        DDREGISTER.PUMP_POWER:      {"name": "PUMP_POWER", "value": None, "type": "decimal", "system": "boiler"},
+#        DDREGISTER.PUMP_POWER:      {"name": "PUMP_POWER", "value": None, "type": "decimal", "system": "boiler"},
         DDREGISTER.ALARME:          {"name": "ALARME_raw", "value": None, "type": "integer", "system": "boiler"},
     }
     ranges = []
@@ -163,9 +178,9 @@ class DienematicRegisters:
         return mode
 
     def decode_alarm(self):
-        alarm = self.registers[465]['value']
+        alarm = self.registers[DDREGISTER.ALARME]['value']
         if alarm == 0:
-            return 'OK'
+            return 'All OK'
         elif alarm == 10:
             return 'Défaut Sonde Retour'
         elif alarm == 21:
@@ -305,7 +320,7 @@ class DiematicModbusInterface:
                             current_time = time.time()
 
                             try:
-                                print('!')
+
                                 reg = self.register_to_write.get(False)
                                 res = self.modBusInterface.write_register(address=reg['register'], value=reg['value'], unit=0x0A)
                                 print(res)
