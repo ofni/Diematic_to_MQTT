@@ -121,16 +121,23 @@ class DienematicRegisters:
     ranges = []
 
     def __init__(self):
-        self.sort_registers()
-        self.find_range()
+        self._sort_find_range()
 
-    def find_range(self):
+    def _sort_find_range(self):
+        """
+        function sort registers by registers ID
+         fill ranges wit consecutive register ranges to read multiple registers in one time
+        ex ranges = [[3,7], [13,13], ]
+
+        :return:
+        """
+        # sort registers
+        self.registers = {x[0]: x[1] for x in sorted(self.registers.items(), key=lambda x: x[0])}
+
+        # get ranges
         data = [x for x in self.registers.keys()]
         for k, g in groupby(enumerate(data), lambda ix: ix[0] - ix[1]):
             self.ranges.append(list(map(itemgetter(1), g)))
-
-    def sort_registers(self):
-        self.registers = { x[0]:x[1] for x in sorted(self.registers.items(), key=lambda x: x[0])}
 
     def decode(self, register, value):
         register_type = self.registers[register]["type"]
