@@ -40,6 +40,7 @@ class MqttInterface:
         self.client.loop_start()
 
     def loop_stop(self):
+        self.client.publish('home/heater2/boiler/boiler/status', "Offline", 2, True)
         self.client.loop_stop()
 
     def add_callback(self, topic, func):
@@ -56,9 +57,11 @@ class MqttInterface:
 
     def on_connect(self, client, userdata, flags, rc):
         print('Connected to MQTT broker')
+        self.logger.critical('Connected to MQTT broker')
         client.subscribe(f'{self.mqttTopicPrefix}/+/mode/set', 2)
         client.subscribe(f'{self.mqttTopicPrefix}/date/set', 2)
         client.subscribe(f'{self.mqttTopicPrefix}/temp/reset', 2)
 
     def on_disconnect(self, client, userdata, rc):
         print('Disconnected from MQTT broker')
+        self.logger.critical('Disconnected from MQTT broker')

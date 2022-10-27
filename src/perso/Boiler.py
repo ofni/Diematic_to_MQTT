@@ -11,13 +11,14 @@ import threading
 
 from mqtt_interface import MqttInterface
 
-from modbus_interface import DiematicModbusInterface, DDREGISTER, DienematicRegisters
+from modbus_interface import DiematicModbusInterface, DDREGISTER
 
 
 class Boiler:
 
     def __init__(self, conf):
         self.mqtt_client = MqttInterface(conf)
+
         self.mqtt_client.add_callback('+/mode/set', self.set_mode)
         self.mqtt_client.add_callback('date/set', self.set_date)
         self.mqtt_client.add_callback('temp/reset', self.reset_temp)
@@ -89,13 +90,15 @@ class Boiler:
         self.boiler.loop_start()
 
     def loop_stop(self):
+        logger.critical('stopping mqtt')
         self.mqtt_client.loop_stop()
+        logger.critical('stopping modbus')
         self.boiler.loop_stop()
 
 
 def sigterm_exit(signum, frame):
-        logger.critical('Stop requested by SIGTERM, raising KeyboardInterrupt')
-        raise KeyboardInterrupt
+    logger.critical('Stop requested by SIGTERM, raising KeyboardInterrupt')
+    raise KeyboardInterrupt
 
 
 if __name__ == '__main__':
@@ -127,9 +130,11 @@ if __name__ == '__main__':
             # Check every 10s that all threads are living
             time.sleep(10)
 
+            # in normal mode, 6 in debug with pycharm
             if threading.active_count() != 3 and threading.active_count() != 6:
                 logger.critical('At least one process has been killed, stop launched')
                 run = False
+
         boiler.loop_stop()
         logger.critical('Stopped')
 

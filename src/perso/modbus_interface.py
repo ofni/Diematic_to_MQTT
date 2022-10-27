@@ -254,7 +254,7 @@ class DiematicModbusInterface:
 
     def loop_start(self):
         # launch loop
-        self.loopThread = threading.Thread(target=self.loop, name='diematic')
+        self.loopThread = threading.Thread(target=self.loop, name='modbus_interface')
         self.loopThread.start()
 
     def loop_stop(self):
