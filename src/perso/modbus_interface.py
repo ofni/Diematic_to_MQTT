@@ -235,16 +235,26 @@ class DienematicRegisters:
 
         boiler_datetime = datetime(self.registers[110]['value'] + 2000, self.registers[109]['value'], self.registers[108]['value'], self.registers[4]['value'], self.registers[5]['value'], 0, 0)
 
-        registers.append({"name": "status", "value": "Online", "type": "string", "system": "boiler"})
-        registers.append({"name": "MODE_B", "value": self.decode_mode(DDREGISTER.MODE_B), "type": "decimal", "system": "circuit_B"})
-        registers.append({"name": "MODE_C", "value": self.decode_mode(DDREGISTER.MODE_C), "type": "decimal", "system": "circuit_C"})
-        registers.append({"name": "DATE", "value": boiler_datetime, "type": "string", "system": "boiler"})
-        registers.append({"name": "ALARME", "value": self.decode_alarm(), "type": "integer", "system": "boiler"})
+        burner_status = (int(self.registers[DDREGISTER.BASE_ECS]['value'], 2) & 0b1000) >> 3
 
-        #burnerStatus = (self.registers[DDREGISTER.BASE_ECS]['value'] & 0x08) >>3
-        # #burner power calculation with fans peed and ionization current
-        FAN_SPEED_MAX = 5900
-        #burnerPower = round((self.registers[307]['value'] / FAN_SPEED_MAX)*100) if (self.registers[451]['value']>0) else 0
+        pump_aux = (int(self.registers[DDREGISTER.BASE_ECS]['value'], 2) & 0b1)
+        pump_a = (int(self.registers[DDREGISTER.BASE_ECS]['value'], 2) & 0b10000) >> 4
+        pump_b = (int(self.registers[DDREGISTER.OPTIONS_B_C]['value'], 2) & 0b10000) >> 4
+        pump_c = (int(self.registers[DDREGISTER.OPTIONS_B_C]['value'], 2) & 0b100000) >> 5
+        pump_ecs = (int(self.registers[DDREGISTER.BASE_ECS]['value'], 2) & 0b100000) >> 5
+
+        registers.append({"name": "status", "value": "Online", "type": "string", "system": "boiler"})
+        registers.append({"name": "MODE_B", "value": self.decode_mode(DDREGISTER.MODE_B), "type": "calculated", "system": "circuit_B"})
+        registers.append({"name": "MODE_C", "value": self.decode_mode(DDREGISTER.MODE_C), "type": "calculated", "system": "circuit_C"})
+        registers.append({"name": "DATE", "value": boiler_datetime, "type": "calculated", "system": "boiler"})
+        registers.append({"name": "DEFAULT", "value": self.decode_alarm(), "type": "calculated", "system": "boiler"})
+        registers.append({"name": "BURNER", "value": burner_status, "type": "calculated", "system": "boiler"})
+
+        registers.append({"name": "PUMP_AUX", "value": pump_aux, "type": "calculated", "system": "boiler"})
+        registers.append({"name": "PUMP_A", "value": pump_a, "type": "calculated", "system": "boiler"})
+        registers.append({"name": "PUMP_B", "value": pump_b, "type": "calculated", "system": "boiler"})
+        registers.append({"name": "PUMP_C", "value": pump_c, "type": "calculated", "system": "boiler"})
+        registers.append({"name": "PUMP_ECS", "value": pump_ecs, "type": "calculated", "system": "boiler"})
 
         return registers
 
