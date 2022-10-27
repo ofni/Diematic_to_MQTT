@@ -219,8 +219,9 @@ class DienematicRegisters:
         """
         function to print registers values
         """
-        reg = self.registers.get(reg, {"name": "NA", "value": "NA"})
-        print(f'{reg["name"]} -> value: {reg["value"]}')
+        for r in reg:
+            register = self.registers.get(r, {"name": "NA", "value": "NA"})
+            print(f'{register["name"]} -> value: {register["value"]}')
 
     def reset_values(self):
         """
@@ -372,6 +373,7 @@ class DiematicModbusInterface:
                         if self.register_to_read.empty():
                             #print('all registers read', current_time - master_time)
                             # self.registers.dump_registers()
-                            self.registers.dump_raw_register([DDREGISTER.MODE_C, DDREGISTER.MODE_B])
+                            #self.registers.dump_raw_register([DDREGISTER.MODE_C, DDREGISTER.MODE_B])
                             self.publisher.send(self.registers.get_registers())
+                            print('****************')
                             self.reset_queue()
