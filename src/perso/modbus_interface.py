@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pymodbus.client.sync import ModbusSerialClient as ModbusClient
-import time
-import queue
 from datetime import datetime
-from itertools import groupby
-from operator import itemgetter
-import threading
 from enum import IntEnum
+from itertools import groupby
+import logging.config
+import logging
+from operator import itemgetter
+import queue
+import threading
+import time
+
+from pymodbus.client.sync import ModbusSerialClient as ModbusClient
 
 
 class DDREGISTER(IntEnum):
@@ -206,11 +209,6 @@ class DienematicRegisters:
             reg["value"] = None
 
     def get_registers(self):
-
-        """"
-
-        """
-
         registers = list(self.registers.values())
 
         boiler_datetime = datetime(self.registers[110]['value'] + 2000, self.registers[109]['value'], self.registers[108]['value'], self.registers[4]['value'], self.registers[5]['value'], 0, 0)
@@ -239,11 +237,24 @@ class DiematicModbusInterface:
     busStatus = 'INIT'
     registers = DienematicRegisters()
 
-    def __init__(self, publish_function, port='/dev/ttyUSB0'):
+    def __init__(self, publish_function, port='/dev/ttyUSB0', unit=0x0A):
+
+        logging.config.fileConfig('logging.conf')
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.critical(f'Modbus interface address: {port}')
+        self.logger.critical(f'Modbus regulator address: {hex(unit)}')
+
+        self.loopThread = None
+
         self.modBusInterface = ModbusClient(method='rtu', port=port, baudrate=9600)
+
         for range in self.registers.ranges:
             self.register_to_read.put(range)
+
         self.publisher = publish_function
+
+        self.unit = unit
 
     def write_register(self, register, value):
         self.register_to_write.put({"register": register, "value": value})
@@ -317,7 +328,7 @@ class DiematicModbusInterface:
                             nb_range = range_max - range_min + 1
 
                             #print(f'  - getting registers: {range}')
-                            res = self.modBusInterface.read_holding_registers(address=range_min, count=nb_range, unit=0x0A)
+                            res = self.modBusInterface.read_holding_registers(address=range_min, count=nb_range, unit=self.unit)
                             if res.isError():
                                 #print('    * error: ', range, res)
                                 self.register_to_read.put(range)
@@ -332,8 +343,3 @@ class DiematicModbusInterface:
                             self.registers.dump_raw_register([DDREGISTER.MODE_C, DDREGISTER.MODE_B])
                             self.publisher.send(self.registers.get_registers())
                             self.reset_queue()
-
-
-if __name__ == '__main__':
-    boiler = DiematicModbusInterface()
-    boiler.loop()

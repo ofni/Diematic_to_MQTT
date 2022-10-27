@@ -117,12 +117,6 @@ if __name__ == '__main__':
         config = configparser.ConfigParser()
         config.read('Diematic32MQTT.conf')
 
-        # Modbus settings
-        modbusAddress = config.get('Modbus', 'ip')
-        modbusPort = config.get('Modbus', 'port')
-        modbusRegulatorAddress = int(config.get('Modbus', 'regulatorAddress'), 0)
-        logger.critical('Modbus interface address: '+modbusAddress+' : '+modbusPort)
-        logger.critical('Modbus regulator address: ' + hex(modbusRegulatorAddress))
 
         # Init Boiler
         boiler = Boiler(config)
