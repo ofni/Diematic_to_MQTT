@@ -1,0 +1,15 @@
+[Unit]
+Description=Diematic32MQTT
+Wants=network-online.target signal.service
+After=network-online.target signal.service
+[Service]
+Type=simple
+ExecStart=/home/ubuntu/mqtt_diematic/venv2/bin/python3  /home/ubuntu/mqtt_diematic/src/perso/boiler.py
+WorkingDirectory=/home/ubuntu/mqtt_diematic/src/perso
+StandardOutput=inherit
+StandardError=inherit
+User=pi
+ 
+Restart=always
+[Install]
+WantedBy=multi-user.target
